@@ -149,7 +149,26 @@ public class PDSeparation extends PDSpecialColorSpace
             // PDFBOX-3622 - regular converter fails for Lab colorspaces
             return toRGBImage2(raster);
         }
-        
+        int width = raster.getWidth();
+        int height = raster.getHeight();
+        float[] samples = new float[1];
+
+        // fix https://issues.apache.org/jira/browse/PDFBOX-5464 start
+        BufferedImage bim = new BufferedImage(raster.getWidth(), raster.getHeight(), BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                raster.getPixel(x, y, samples);
+                samples[0] /= 255.0;
+                float[] toRGB = toRGB(samples);
+                bim.setRGB(x, y, ((int) (toRGB[0] * 255)) << 16 | ((int) (toRGB[1] * 255)) << 8 | ((int) (toRGB[2] * 255)));
+            }
+        }
+        return bim;
+        // end
+
+        /* origin code
         // use the tint transform to convert the sample into
         // the alternate color space (this is usually 1:many)
         WritableRaster altRaster = Raster.createBandedRaster(DataBuffer.TYPE_BYTE,
@@ -182,7 +201,7 @@ public class PDSeparation extends PDSpecialColorSpace
         }
 
         // convert the alternate color space to RGB
-        return alternateColorSpace.toRGBImage(altRaster);
+        return alternateColorSpace.toRGBImage(altRaster);*/
     }
 
     // converter that works without using super implementation of toRGBImage()
